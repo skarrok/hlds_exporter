@@ -1,0 +1,23 @@
+[package]
+name = "hlds_exporter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.81"
+clap = { version = "4.5.3", features = ["derive", "env"] }
+dotenvy = "0.15.7"
+log = { version = "0.4.21", features = ["kv"] }
+prometheus-client = "0.22.2"
+serde_json = "1.0.114"
+serde = { version = "1.0.197", features = ["derive"] }
+supports-color = "3.0.0"
+thiserror = "1.0.58"
+tiny_http = "0.12.0"
+tokio = { version = "1.37.0", features = ["macros", "rt", "net", "sync", "time"] }
+tracing-subscriber = { version = "0.3.18", features = ["json", "env-filter"] }
+tracing = { version = "0.1.40", features = ["log"] }
+a2s = "0.5.2"
+byteorder = "1.5.0"
