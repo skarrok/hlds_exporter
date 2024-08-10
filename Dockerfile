@@ -1,36 +1,23 @@
-FROM rust:1.77.1 as builder
+FROM rust:1.77.1 AS chef
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo install cargo-chef
+WORKDIR /app
 
-# create a new empty shell project
-RUN USER=root cargo new --bin hlds_exporter
-WORKDIR /hlds_exporter
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare  --recipe-path recipe.json
 
-# copy over your manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
+FROM chef AS builder 
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,sharing=private,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json
+COPY . .
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,sharing=private,target=/app/target \
+    cargo build --release --bin hlds_exporter \
+    && cp /app/target/release/hlds_exporter /app
 
-# this build step will cache your dependencies
-RUN --mount=type=cache,target=/home/rust/.cargo/git \
-    --mount=type=cache,target=/home/rust/.cargo/registry \
-    --mount=type=cache,sharing=private,target=/hlds_exporter/target \
-    rustup component add rustfmt clippy \
-    && cargo build --release && rm src/*.rs
-
-# copy your source tree
-COPY ./src ./src
-
-# build for release
-RUN --mount=type=cache,target=/home/rust/.cargo/git \
-    --mount=type=cache,target=/home/rust/.cargo/registry \
-    --mount=type=cache,sharing=private,target=/hlds_exporter/target \
-    rm -rf /hlds_exporter/target/release/tgbot* \
-    && touch ./src/main.rs \
-    && cargo build --release \
-    && cp target/release/hlds_exporter /hlds_exporter/hlds_exporter
-
-FROM gcr.io/distroless/cc-debian12:nonroot as release
-
-# copy the build artifact from the build stage
-COPY --from=builder /hlds_exporter/hlds_exporter /
-
-# set the startup command to run your binary
+FROM gcr.io/distroless/cc-debian12:nonroot AS release
+COPY --from=builder /app/hlds_exporter /
 CMD ["/hlds_exporter"]

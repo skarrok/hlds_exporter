@@ -179,7 +179,7 @@ impl GameServer {
         }
     }
 
-    pub(crate) async fn get_info(&mut self) -> anyhow::Result<()> {
+    pub(crate) async fn get_info(&self) -> anyhow::Result<()> {
         if self.challenge.is_empty() {
             self.socket.send_to(A2S_INFO, self.server_addr).await?;
         } else {
@@ -190,7 +190,7 @@ impl GameServer {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self, reply))]
+    #[tracing::instrument(skip(self, reply), fields(server = %self.server_addr))]
     pub async fn parse_reply(&mut self, reply: &[u8]) {
         if reply.starts_with(SPLIT_PACKET) {
             tracing::warn!(server = %self.server_addr, "Split packet is not supported");
@@ -199,7 +199,7 @@ impl GameServer {
         self.parse_packet(reply).await;
     }
 
-    async fn parse_packet(&mut self, packet: &[u8]) {
+    async fn parse_packet(&self, packet: &[u8]) {
         if !packet.starts_with(HEADER) {
             return;
         }
